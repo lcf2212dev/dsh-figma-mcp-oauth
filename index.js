@@ -184,7 +184,7 @@ export function apply(ctx, config) {
   ctx.inject(['commands'], (inner) => {
     inner.commands.register({
       name: 'figma-login',
-      description: 'Conecta o servidor MCP da Figma (abre a página de autorização da Figma).',
+      description: 'Connect the Figma MCP server (opens the Figma authorization page).',
       handler: async (invocation) => {
         try {
           const text = await connection.login({ signal: invocation.signal })
@@ -202,7 +202,7 @@ export function apply(ctx, config) {
     inner.authorization.registerFlow({
       key: AUTH_KEY,
       label: 'Figma MCP',
-      methods: [{ id: 'oauth', label: 'Entrar com a Figma' }],
+      methods: [{ id: 'oauth', label: 'Sign in with Figma' }],
       async run(session) {
         await connection.login({
           signal: session.signal,
@@ -365,7 +365,7 @@ function registerLogoutTool(ctx, connection) {
     },
     async execute() {
       await connection.logout()
-      return 'Figma: sessão encerrada e desconectada.'
+      return 'Figma: session closed and disconnected.'
     },
   })
 }

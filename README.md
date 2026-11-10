@@ -1,125 +1,125 @@
-# Figma MCP com OAuth — plugin do DeepSeek Harness
+# Figma MCP with OAuth — DeepSeek Harness plugin
 
-Conecta o DeepSeek Harness ao **servidor MCP da Figma** (`https://mcp.figma.com/mcp`)
-usando **OAuth 2.1 (authorization code + PKCE S256 + registro dinâmico de cliente)**
-e publica as ferramentas do servidor para o agente como `mcp__figma__<ferramenta>`.
+Connects DeepSeek Harness to the **Figma MCP server** (`https://mcp.figma.com/mcp`)
+using **OAuth 2.1 (authorization code + PKCE S256 + dynamic client registration)**
+and publishes the server's tools to the agent as `mcp__figma__<tool>`.
 
-O plugin é um bundle **Host-only**: não tem metade Client nem interface própria. O
-fluxo de autorização usa a porta de retorno local (loopback, RFC 8252), abre a
-página da Figma no navegador do usuário e guarda o token no cofre de credenciais
-do Harness — nunca em configuração.
+The plugin is a **Host-only** bundle: it has no Client half and no UI of its own. The
+authorization flow uses the local loopback redirect port (RFC 8252), opens the
+Figma page in the user's browser, and stores the token in the Harness credential
+store — never in configuration.
 
 ---
 
-## O que ele oferece
+## What it offers
 
-| Superfície | O que faz |
+| Surface | What it does |
 |---|---|
-| `figma_login` (ferramenta) | Inicia/junta o fluxo OAuth. Devolve a URL de autorização para o usuário; por padrão não bloqueia. `wait: true` espera o callback. |
-| `figma_status` (ferramenta) | Estado: conectado/desconectado, quantas ferramentas `mcp__figma__*` existem, URL pendente. |
-| `figma_logout` (ferramenta) | Apaga o grant armazenado e desregistra as ferramentas do servidor. |
-| `/figma-login` (comando do compositor) | Mesma operação do `figma_login`, bloqueando até o callback (útil quando o humano está na frente da tela). |
-| fluxo `Figma MCP` em `ctx.authorization` | O mesmo sign-in registrado no seam de autorização do Harness, para qualquer superfície futura que renderize fluxos. |
-| `mcp__figma__*` | Ferramentas do servidor MCP da Figma (design context, screenshot, write-to-canvas, etc.), registradas após a autorização. |
+| `figma_login` (tool) | Starts/joins the OAuth flow. Returns the authorization URL to the user; does not block by default. `wait: true` waits for the callback. |
+| `figma_status` (tool) | State: connected/disconnected, how many `mcp__figma__*` tools exist, pending URL. |
+| `figma_logout` (tool) | Deletes the stored grant and unregisters the server's tools. |
+| `/figma-login` (composer command) | Same operation as `figma_login`, blocking until the callback (useful when the human is in front of the screen). |
+| `Figma MCP` flow in `ctx.authorization` | The same sign-in registered on the Harness authorization seam, for any future surface that renders flows. |
+| `mcp__figma__*` | Figma MCP server tools (design context, screenshot, write-to-canvas, etc.), registered after authorization. |
 
-O plugin também publica as `instructions` do servidor MCP no system prompt na mesma
-posição que o bridge oficial usa e registra as operações de recurso em
-`ctx.mcpResources` (quando esses serviços existem).
+The plugin also publishes the MCP server's `instructions` into the system prompt at the
+same position the official bridge uses and registers the resource operations in
+`ctx.mcpResources` (when those services exist).
 
-## Como funciona o OAuth
+## How OAuth works
 
-1. `figma_login` abre um listener em `127.0.0.1:<redirectPort>/callback`.
-2. O SDK MCP (`@modelcontextprotocol/client`) descobre os metadados:
+1. `figma_login` opens a listener on `127.0.0.1:<redirectPort>/callback`.
+2. The MCP SDK (`@modelcontextprotocol/client`) discovers the metadata:
    `https://mcp.figma.com/.well-known/oauth-protected-resource` →
    `https://api.figma.com/.well-known/oauth-authorization-server`.
-3. Sem registro de cliente em cache, registra um cliente novo (RFC 7591) em
-   `https://api.figma.com/v1/oauth/mcp/register` com o `clientName` configurado.
-4. Monta a URL `https://www.figma.com/oauth/mcp` com PKCE S256, `state` de uso
-   único e `resource=https://mcp.figma.com/mcp`; abre o navegador.
-5. O navegador volta para `http://127.0.0.1:<redirectPort>/callback`; o plugin
-   valida `state`, entrega o `code` ao SDK (que valida o `iss` RFC 9207) e troca
-   o código por token **em menos de 30 s** (códigos da Figma expiram em 30 s).
-6. Conecta em `https://mcp.figma.com/mcp` com `Authorization: Bearer …`,
-   descobre a lista de ferramentas e registra a geração atual em `ctx.tools`.
-7. Renovações: um 401 dispara refresh automático (client `client_secret_basic`)
-   e nova tentativa; se o refresh falhar, o agente recebe uma mensagem pedindo
+3. With no cached client registration, it registers a new client (RFC 7591) at
+   `https://api.figma.com/v1/oauth/mcp/register` with the configured `clientName`.
+4. It builds the `https://www.figma.com/oauth/mcp` URL with PKCE S256, a single-use
+   `state`, and `resource=https://mcp.figma.com/mcp`; opens the browser.
+5. The browser returns to `http://127.0.0.1:<redirectPort>/callback`; the plugin
+   validates `state`, hands the `code` to the SDK (which validates the RFC 9207 `iss`)
+   and exchanges the code for a token **in under 30 s** (Figma codes expire in 30 s).
+6. It connects to `https://mcp.figma.com/mcp` with `Authorization: Bearer …`,
+   discovers the tool list, and registers the current generation in `ctx.tools`.
+7. Refreshes: a 401 triggers an automatic refresh (client `client_secret_basic`)
+   and a retry; if the refresh fails, the agent receives a message asking for
    `figma_login`.
 
-## Instalação
+## Installation
 
-Para instalar o bundle em um perfil do Harness:
+To install the bundle into a Harness profile:
 
 ```
-plugin_manager action=install_bundle target=/caminho/absoluto/dsh-figma-mcp-oauth
+plugin_manager action=install_bundle target=/absolute/path/dsh-figma-mcp-oauth
 ```
 
-O instalador faz `pnpm add <diretório>` e registra uma dependência `link:`; as
-dependências declaradas são **peerDependencies** resolvidas pela instalação do DSH
+The installer runs `pnpm add <directory>` and registers a `link:` dependency; the
+declared dependencies are **peerDependencies** resolved by the DSH installation
 (`@modelcontextprotocol/client`, `@deepseek-ai/dsh-mcp-client`,
-`@deepseek-ai/schemastery`), então o bundle não baixa nada da npm.
+`@deepseek-ai/schemastery`), so the bundle downloads nothing from npm.
 
-## Configuração
+## Configuration
 
-Configurada na linha `figma-mcp` do patch do bundle (`cordis.patch.yml`):
+Configured on the `figma-mcp` row of the bundle patch (`cordis.patch.yml`):
 
-| Campo | Padrão | Significado |
+| Field | Default | Meaning |
 |---|---|---|
-| `url` | `https://mcp.figma.com/mcp` | Endpoint Streamable HTTP do MCP da Figma (ou `http://127.0.0.1:3845/mcp` no modo desktop). |
-| `serverName` | `figma` | Namespace das ferramentas públicas: `mcp__<serverName>__<rawName>`. |
-| `authMode` | `oauth` | `none` para falar com o servidor desktop (sem OAuth). |
-| `clientName` | `Claude Code (DSH)` | `client_name` enviado no registro dinâmico. **Leia a seção de política abaixo.** |
-| `scope` | `mcp:connect` | Único escopo publicado pelo AS da Figma. |
-| `redirectPort` | `3846` | Porta do callback loopback. Mantenha estável: a Figma compara o `redirect_uri` byte a byte. |
-| `loginTimeoutMs` | `180000` | Tempo máximo de espera pelo callback em uma tentativa. |
-| `toolCallTimeoutMs` | `60000` | Timeout por `tools/call`. |
-| `autoConnect` | `true` | Conectar na carga quando já existe grant armazenado. |
-| `openBrowser` | `true` | Tentar abrir a URL de autorização no navegador do host (senão, devolva a URL ao usuário). |
+| `url` | `https://mcp.figma.com/mcp` | Figma MCP Streamable HTTP endpoint (or `http://127.0.0.1:3845/mcp` in desktop mode). |
+| `serverName` | `figma` | Namespace of the public tools: `mcp__<serverName>__<rawName>`. |
+| `authMode` | `oauth` | `none` to talk to the desktop server (no OAuth). |
+| `clientName` | `Claude Code (DSH)` | `client_name` sent in dynamic registration. **Read the policy section below.** |
+| `scope` | `mcp:connect` | The only scope published by Figma's AS. |
+| `redirectPort` | `3846` | Loopback callback port. Keep it stable: Figma compares the `redirect_uri` byte by byte. |
+| `loginTimeoutMs` | `180000` | Maximum time to wait for the callback in one attempt. |
+| `toolCallTimeoutMs` | `60000` | Timeout per `tools/call`. |
+| `autoConnect` | `true` | Connect at load when a stored grant already exists. |
+| `openBrowser` | `true` | Try to open the authorization URL in the host's browser (otherwise, return the URL to the user). |
 
-> Alterar `clientName` invalida o registro de cliente em cache e força um novo
-> registro no próximo `figma_login`. Alterar `url`/`redirectPort` também exige
-> refazer o login (`figma_logout` → `figma_login`).
+> Changing `clientName` invalidates the cached client registration and forces a new
+> registration on the next `figma_login`. Changing `url`/`redirectPort` also requires
+> logging in again (`figma_logout` → `figma_login`).
 >
-> Não há cliente OAuth pré-registrado configurável hoje: o plugin usa somente o
-> registro dinâmico (DCR). Qualquer suporte futuro a cliente pré-registrado lerá
-> o segredo do cofre de credenciais, nunca de `cordis.patch.yml`.
+> There is no configurable pre-registered OAuth client today: the plugin uses only
+> dynamic registration (DCR). Any future support for a pre-registered client will read
+> the secret from the credential store, never from `cordis.patch.yml`.
 
-## ⚠️ Política da Figma: por que `clientName: 'Claude Code (DSH)'`
+## ⚠️ Figma policy: why `clientName: 'Claude Code (DSH)'`
 
-O registro dinâmico de clientes do servidor MCP remoto da Figma **não aceita
-clientes arbitrários**: o `client_name` é comparado com uma lista de clientes do
-catálogo MCP da Figma (prefixos `Claude Code` / `Claude Desktop`, ou exatamente
-`Codex`). Qualquer outro nome recebe `403 Forbidden` seco. Clientes fora do
-catálogo são direcionados a uma lista de espera
-([formulário](https://form.asana.com/?k=kBG-ejRQTdY8x_H6a4vM3Q&d=10497086658021));
-apps OAuth normais da Figma não podem pedir o escopo `mcp:connect`.
+Figma's remote MCP server **does not accept arbitrary clients** in dynamic client
+registration: the `client_name` is compared against a list of clients from the
+Figma MCP catalog (`Claude Code` / `Claude Desktop` prefixes, or exactly
+`Codex`). Any other name gets a bare `403 Forbidden`. Clients outside the
+catalog are directed to a waitlist
+([form](https://form.asana.com/?k=kBG-ejRQTdY8x_H6a4vM3Q&d=10497086658021));
+normal Figma OAuth apps cannot request the `mcp:connect` scope.
 
-Este perfil usa o nome `Claude Code (DSH)` como **opt-in de compatibilidade
-explícito**: é o único caminho hoje para um cliente de terceiros falar com o
-servidor remoto. Consequências que você deve conhecer:
+This profile uses the name `Claude Code (DSH)` as an **explicit compatibility
+opt-in**: it is the only path today for a third-party client to talk to the
+remote server. Consequences you should know:
 
-- a tela de consentimento da Figma mostra a marca do cliente do catálogo
-  (`Figma MCP in Claude Code`), não o DeepSeek Harness;
-- isso contorna uma restrição de acesso da Figma durante o beta dela — a decisão
-  de usar é sua, e pode deixar de funcionar se a Figma apertar a verificação;
-- **`figma_logout` limpa o registro local**, mas a sessão autorizada na Figma
-  continua existindo na conta até expirar/revogar (a Figma mantém um token por
-  app/usuário).
+- Figma's consent screen shows the catalog client's brand
+  (`Figma MCP in Claude Code`), not DeepSeek Harness;
+- this works around a Figma access restriction during its beta — the decision
+  to use it is yours, and it may stop working if Figma tightens verification;
+- **`figma_logout` clears the local registration**, but the authorized session in Figma
+  still exists on the account until it expires/is revoked (Figma keeps one token per
+  app/user).
 
-Alternativas legítimas:
+Legitimate alternatives:
 
-1. **Lista de espera do catálogo MCP da Figma** (acima). Cliente
-   pré-registrado **ainda não está implementado** neste plugin: quando a Figma
-   aprovar o projeto (ou liberar clientes de terceiros), a evolução é ler um
-   `clientId` de configuração e o `client_secret` do cofre de credenciais
-   (registro próprio) e pular o registro dinâmico — hoje só o caminho DCR existe.
-2. **Modo desktop, sem OAuth**: `authMode: none` + `url: http://127.0.0.1:3845/mcp`
-   com o app Figma desktop, Dev Mode e assento Dev/Full em plano pago. Sem
-   write-to-canvas e sem as ferramentas de geração de design do servidor remoto.
-3. Atualizar o Harness quando a Figma permitir CIMD (Client ID Metadata Documents)
-   ou liberar clientes de terceiros; a camada de OAuth do plugin é a do SDK, então
-   a migração é local.
+1. **Figma MCP catalog waitlist** (above). A pre-registered client is
+   **not implemented yet** in this plugin: when Figma approves the project (or
+   opens up third-party clients), the evolution is to read a `clientId` from
+   configuration and the `client_secret` from the credential store
+   (own registration) and skip dynamic registration — today only the DCR path exists.
+2. **Desktop mode, without OAuth**: `authMode: none` + `url: http://127.0.0.1:3845/mcp`
+   with the Figma desktop app, Dev Mode, and a Dev/Full seat on a paid plan. No
+   write-to-canvas and no design-generation tools from the remote server.
+3. Update the Harness when Figma allows CIMD (Client ID Metadata Documents)
+   or opens up third-party clients; the plugin's OAuth layer is the SDK's, so
+   the migration is local.
 
-## Modo desktop (sem OAuth)
+## Desktop mode (no OAuth)
 
 ```yaml
 - id: figma-mcp
@@ -130,98 +130,97 @@ Alternativas legítimas:
     autoConnect: true
 ```
 
-Requisitos: app Figma desktop atualizado, arquivo de Design aberto, `Shift+D`
-(Dev Mode, nada selecionado) → barra direita → “Enable desktop MCP server”.
+Requirements: updated Figma desktop app, a Design file open, `Shift+D`
+(Dev Mode, nothing selected) → right sidebar → “Enable desktop MCP server”.
 
-## Segurança
+## Security
 
-- O grant (client information, tokens, code verifier, `state`, discovery state)
-  fica no **cofre de credenciais do Harness**, registro `figma-mcp/oauth`
-  (`ctx.credentials`), nunca em `cordis.patch.yml`.
-- O listener de callback escuta **somente** `127.0.0.1`, valida `state` e mostra a
-  página de sucesso só depois de o `error`/`state` serem conferidos; o `iss` é
-  validado pelo SDK antes de trocar o código.
-- `figma_logout` apaga o registro (`deleteRecord`) e desconecta.
-- Nenhum segredo aparece em prompt, saída de ferramenta ou log.
+- The grant (client information, tokens, code verifier, `state`, discovery state)
+  lives in the **Harness credential store**, record `figma-mcp/oauth`
+  (`ctx.credentials`), never in `cordis.patch.yml`.
+- The callback listener listens on `127.0.0.1` **only**, validates `state`, and shows the
+  success page only after the `error`/`state` have been checked; the `iss` is
+  validated by the SDK before redeeming the code.
+- `figma_logout` deletes the record (`deleteRecord`) and disconnects.
+- No secret appears in a prompt, tool output, or log.
 
-## Solução de problemas
+## Troubleshooting
 
-| Sintoma | Causa / ação |
+| Symptom | Cause / action |
 |---|---|
-| `403 Forbidden` no login, mensagem sobre lista do catálogo | `clientName` fora da allowlist ou a Figma mudou o gate. Ajuste `clientName` ou use o modo desktop. |
-| “não foi possível ouvir na porta de callback 3846” | Outra instância do plugin/Harness está usando a porta. A mensagem é devolvida na hora (não trava o Host); feche a outra instância ou mude `redirectPort` e refaça o login. |
-| “authorization timed out” | Ninguém concluiu o login em `loginTimeoutMs`. Rode `figma_login` de novo. |
-| “state mismatch (possible mix-up attack)” | Um callback de outra tentativa/instância (ou forjado) é **ignorado**: a página mostra o erro, mas o login pendente continua esperando o callback legítimo até `loginTimeoutMs`. Refaça o login somente se ele expirar. |
-| Ferramentas `mcp__figma__*` não aparecem | Verifique `figma_status`; se estiver `unauthenticated`, chame `figma_login`. Depois da autorização, as ferramentas entram na geração seguinte do prompt. |
-| “a autorização da Figma expirou” ao chamar ferramenta | Token inválido/revogado (por exemplo, login em outra máquina: a Figma mantém um token por app/usuário). A conexão é derrubada e o status passa a `unauthenticated`; `figma_login` refaz o login (sem abrir uma aba por chamada). |
-| Trocou o nome/URL do servidor e a conexão continua igual | `figma_logout` e `figma_login` para registrar de novo. |
-| `figma_logout` durante um login em andamento | O `figma_logout` cancela a tentativa pendente e apaga o grant; o callback atrasado não gera erro confuso. |
+| `403 Forbidden` at login, message about the catalog list | `clientName` outside the allowlist or Figma changed the gate. Adjust `clientName` or use desktop mode. |
+| “could not listen on callback port 3846” | Another instance of the plugin/Harness is using the port. The message is returned right away (it does not hang the Host); close the other instance or change `redirectPort` and log in again. |
+| “authorization timed out” | Nobody completed the login within `loginTimeoutMs`. Run `figma_login` again. |
+| “state mismatch (possible mix-up attack)” | A callback from another attempt/instance (or forged) is **ignored**: the page shows the error, but the pending login keeps waiting for the legitimate callback until `loginTimeoutMs`. Log in again only if it expires. |
+| `mcp__figma__*` tools do not appear | Check `figma_status`; if it is `unauthenticated`, call `figma_login`. After authorization, the tools enter the next prompt generation. |
+| “Figma authorization expired or is invalid” when calling a tool | Invalid/revoked token (for example, signing in on another machine: Figma keeps one token per app/user). The connection is dropped and the status becomes `unauthenticated`; `figma_login` logs in again (no tab opened per call). |
+| Changed the server name/URL and the connection stays the same | `figma_logout` and `figma_login` to register again. |
+| `figma_logout` during a login in progress | `figma_logout` cancels the pending attempt and deletes the grant; the late callback does not produce a confusing error. |
 
-## Arquitetura
+## Architecture
 
 ```
 figma-mcp-oauth/
-├── index.js           # plugin Cordis: Config, inject, apply, ferramentas/comando/fluxo
-├── lib/oauth.js       # OAuthClientProvider + cofre via ctx.credentials + loopback + navegador
-├── lib/mcp.js         # supervisor da conexão MCP, nomes públicos, registro das ferramentas
-├── cordis.patch.yml   # linha figma-mcp do bundle
-├── locale/{en,pt}.json
+├── index.js           # Cordis plugin: Config, inject, apply, tools/command/flow
+├── lib/oauth.js       # OAuthClientProvider + store via ctx.credentials + loopback + browser
+├── lib/mcp.js         # MCP connection supervisor, public names, tool registration
+├── cordis.patch.yml   # bundle's figma-mcp row
+├── locale/en.json
 └── icon.svg
 ```
 
-- **Protocolo**: todo o OAuth é do SDK oficial `@modelcontextprotocol/client@2.2.x`
-  (`auth()`, `OAuthClientProvider`, `StreamableHTTPClientTransport`). O plugin
-  implementa apenas o provider, o listener loopback e a persistência.
-- **Bridge de ferramentas**: reutiliza `createMcpToolDefinition` do
-  `@deepseek-ai/dsh-mcp-client` (mesmo contrato de resultado canônico, imagens
-  duráveis e `projectContent` do bridge oficial); a nomenclatura pública é
-  reimplementada verbatim (`mcp__<server>__<raw>`, 64 chars `[A-Za-z0-9_-]`,
-  sufixo hash SHA-256 de 12 hex quando a normalização perde informação).
-- **Sem dependências npm no bundle**: os três pacotes são `peerDependencies`
-  resolvidas pela instalação do DSH (regra de resolução de bundle `link:`).
-- **Boot seguro**: `apply` nunca espera a rede. Sem grant, o plugin carrega,
-  publica `figma_login` e fica `unauthenticated`; falha de conexão em background
-  só loga.
+- **Protocol**: all OAuth comes from the official SDK `@modelcontextprotocol/client@2.2.x`
+  (`auth()`, `OAuthClientProvider`, `StreamableHTTPClientTransport`). The plugin
+  implements only the provider, the loopback listener, and the persistence.
+- **Tool bridge**: reuses `createMcpToolDefinition` from
+  `@deepseek-ai/dsh-mcp-client` (same canonical result contract, durable images,
+  and `projectContent` as the official bridge); the public naming is
+  reimplemented verbatim (`mcp__<server>__<raw>`, 64 chars `[A-Za-z0-9_-]`,
+  a 12-hex SHA-256 hash suffix when normalization loses information).
+- **No npm dependencies in the bundle**: the three packages are `peerDependencies`
+  resolved by the DSH installation (`link:` bundle resolution rule).
+- **Safe boot**: `apply` never waits on the network. Without a grant, the plugin loads,
+  publishes `figma_login`, and stays `unauthenticated`; a background connection failure
+  only logs.
 
-## Verificação
+## Verification
 
-Estado em 2026-11-09, em desenvolvimento local:
+State as of 2026-11-09, in local development:
 
-- **Fluxo OAuth completo offline** contra um AS + servidor MCP falsos: descoberta
-  (RFC 9728/8414), DCR, PKCE S256 + `state`, callback loopback, troca de código,
-  conexão, `tools/list`, `tools/call`, refresh automático no 401 e reconexão
-  após “restart” usando o grant armazenado, mais `figma_logout` — 19/19
-  checagens (harness local, mantido fora do repositório).
-- **Contra a Figma real**: registro dinâmico `201` com `clientName`
-  `Claude Code (DSH)`, URL de autorização aceita (`302` para o login da Figma)
-  com PKCE S256 + `state` + `scope` + `resource`; nome não-catalogado mapeado
-  para a mensagem acionável de `403`.
-- **Login real concluído pelo usuário** em uso real: `figma_status` →
-  `connected — 42 ferramentas disponíveis — endpoint https://mcp.figma.com/mcp`;
-  `mcp__figma__whoami` respondeu com a conta autenticada; `list_mcp_resources`
-  listou os recursos e skills do servidor (`skill://figma/...`), provando também
-  a integração com `ctx.mcpResources`.
-- **Revisão independente** (relatório mantido fora do repositório, teammate separado do
-  autor): happy path e as 19/19 checagens reproduzidas; encontrou 1 bloqueador
-  (uma rejeição de promise não tratada no listener loopback podia chegar ao
-  handler fatal do Host quando a porta de callback estava ocupada — corrigido:
-  a promise exposta tem handler no-op, listeners são removidos em `finally`,
-  `logout`/`dispose` cancelam a tentativa e todo `void` assíncrono tem `.catch`;
-  reprodução com o handler real do DSH passa a **sobreviver**) e 2 achados
-  maiores corrigidos: recuperação após token revogado (a conexão é derrubada,
-  o status sai de `connected`, `figma_login` volta a funcionar e não abre mais
-  uma aba por chamada falha) e `figma_login` não-bloqueante agora devolve o erro
-  acionável (DCR 403, porta ocupada, descoberta) em vez de “iniciado”.
-- **Re-verificação independente: PASS** (relatório mantido fora do repositório).
-  Contra o código atual: harness adversarial do revisor **180/180** checagens e
-  0 rejeições não tratadas; estático/manifesto/registro vivo **82/82**; harness
-  do autor **37/37**; reparo do bloqueador confirmado com o handler fatal real do
-  DSH (`SURVIVED`, exit 0). Nenhum achado bloqueador/maior residual. Achado
-  menor R1 (README anunciava cliente pré-registrado inexistente) corrigido na
-  documentação.
-- **Pendências conhecidas**: reconexão automática após reiniciar o Host foi
-  coberta apenas no teste offline (`autoConnect` + grant no cofre), não num
-  restart real deste perfil; metadados/ícone renderizados na UI não foram
-  verificados visualmente (sem controle de navegador; recursos estáticos
-  válidos); `tools/call` real do Figma foi exercido via `mcp__figma__whoami`
-  após o login, mas não os fluxos de design.
+- **Full OAuth flow offline** against a fake AS + MCP server: discovery
+  (RFC 9728/8414), DCR, PKCE S256 + `state`, loopback callback, code exchange,
+  connection, `tools/list`, `tools/call`, automatic refresh on 401, and reconnection
+  after a "restart" using the stored grant, plus `figma_logout` — 19/19
+  checks (local harness, kept outside the repository).
+- **Against real Figma**: dynamic registration `201` with `clientName`
+  `Claude Code (DSH)`, authorization URL accepted (`302` to Figma's login)
+  with PKCE S256 + `state` + `scope` + `resource`; a non-catalog name mapped
+  to the actionable `403` message.
+- **Real login completed by the user** in real use: `figma_status` →
+  `connected — 42 tools available — endpoint https://mcp.figma.com/mcp`;
+  `mcp__figma__whoami` answered with the authenticated account; `list_mcp_resources`
+  listed the server's resources and skills (`skill://figma/...`), also proving
+  the integration with `ctx.mcpResources`.
+- **Independent review** (report kept outside the repository, a teammate separate from
+  the author): happy path and the 19/19 checks reproduced; found 1 blocker
+  (an unhandled promise rejection in the loopback listener could reach the Host's
+  fatal handler when the callback port was busy — fixed: the exposed promise has a
+  no-op handler, listeners are removed in `finally`, `logout`/`dispose` cancel the
+  attempt, and every async `void` has `.catch`; reproduction with DSH's real
+  handler now **survives**) and 2 major findings fixed: recovery after a revoked
+  token (the connection is dropped, the status leaves `connected`, `figma_login`
+  works again, and it no longer opens a tab on every failed call) and non-blocking
+  `figma_login` now returns the actionable error (DCR 403, busy port, discovery)
+  instead of "started".
+- **Independent re-verification: PASS** (report kept outside the repository).
+  Against the current code: the reviewer's adversarial harness **180/180** checks and
+  0 unhandled rejections; static/manifest/live registration **82/82**; the author's
+  harness **37/37**; blocker fix confirmed with DSH's real fatal handler
+  (`SURVIVED`, exit 0). No residual blocker/major findings. Minor finding R1
+  (the README announced a non-existent pre-registered client) fixed in the
+  documentation.
+- **Known gaps**: automatic reconnection after restarting the Host was covered
+  only in the offline test (`autoConnect` + grant in the credential store), not in a real
+  restart of this profile; metadata/icon rendered in the UI were not verified
+  visually (no browser control; valid static resources); real Figma `tools/call`
+  was exercised via `mcp__figma__whoami` after login, but not the design flows.

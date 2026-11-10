@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "title": "Figma MCP (OAuth)",
-    "description": "Conecta o servidor MCP da Figma com OAuth e disponibiliza as ferramentas de design para o agente."
-  }
-}

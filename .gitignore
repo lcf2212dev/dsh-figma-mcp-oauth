@@ -1,11 +1,11 @@
-# Dependências e artefatos de build
+# Dependencies and build artifacts
 node_modules/
 coverage/
 *.log
 *.tmp
 *.tmp-*
 
-# Sistema operacional e editores
+# Operating system and editors
 .DS_Store
 Thumbs.db
 .idea/
@@ -13,7 +13,7 @@ Thumbs.db
 *.swp
 *~
 
-# Configuração local (nunca versionada)
+# Local configuration (never committed)
 .env
 .env.*
 *.local.*
@@ -21,7 +21,7 @@ Thumbs.db
 dsh.local.yml
 cordis.patch.local.yml
 
-# Testes, verificação e saídas locais
+# Tests, verification and local outputs
 /figma-mcp-test/
 /research/
 /figma-out/
