@@ -1,0 +1,49 @@
+{
+  "name": "@local/dsh-figma-mcp-oauth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Connects Figma's MCP server with OAuth and bridges its design tools into the agent.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib/*.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/dsh-mcp-client": "^0.2.2-rc.1",
+    "@modelcontextprotocol/client": ">=2.2.0 <3",
+    "@deepseek-ai/schemastery": ">=3.19.0 <4"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "author": "lcf2212dev",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "plugin",
+    "figma",
+    "mcp",
+    "oauth"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/lcf2212dev/dsh-figma-mcp-oauth.git"
+  },
+  "homepage": "https://github.com/lcf2212dev/dsh-figma-mcp-oauth",
+  "bugs": {
+    "url": "https://github.com/lcf2212dev/dsh-figma-mcp-oauth/issues"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,29 @@
+# Bundle patch for @local/dsh-figma-mcp-oauth.
+#
+# The row id (`figma-mcp`) and the package name are the identity the plugin
+# manager tracks; keep both unique in this profile.
+- insert:
+    - id: figma-mcp
+      name: '@local/dsh-figma-mcp-oauth'
+      config:
+        # Remote Figma MCP server: Streamable HTTP + OAuth.
+        # No-OAuth fallback: point this at http://127.0.0.1:3845/mcp (Figma
+        # desktop Dev Mode server) and set authMode: none.
+        url: https://mcp.figma.com/mcp
+        # Tool namespace: mcp__figma__<rawName>.
+        serverName: figma
+        authMode: oauth
+        # Figma's authorization server only registers OAuth clients whose
+        # client_name is on its MCP-catalog allowlist ("Claude Code…",
+        # "Claude Desktop…", or exactly "Codex"); any other name gets a bare
+        # 403 Forbidden from the registration endpoint. This profile uses a
+        # catalog-compatible name as an explicit compatibility opt-in — see
+        # the bundle README for the policy caveat and the alternatives.
+        clientName: 'Claude Code (DSH)'
+        # Loopback callback port. Keep stable while a client registration is
+        # cached: Figma matches redirect_uri byte-for-byte.
+        redirectPort: 3846
+        loginTimeoutMs: 180000
+        toolCallTimeoutMs: 60000
+        autoConnect: true
+        openBrowser: true

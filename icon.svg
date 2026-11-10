@@ -1,0 +1,17 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="7" y="7" width="18" height="18" rx="4" fill="url(#figma-oauth-card)" fill-opacity="0.85" />
+  <path d="M13.2 10.8V21.2M18.8 10.8V21.2M10.8 13.2H21.2M10.8 18.8H21.2" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" />
+  <rect x="17.5" y="17.5" width="11.5" height="11.5" rx="3" fill="url(#figma-oauth-lock)" />
+  <path d="M21.9 22.8V21.6C21.9 20.85 22.5 20.25 23.25 20.25C24 20.25 24.6 20.85 24.6 21.6V22.8" stroke="#FFFFFF" stroke-width="1.3" />
+  <rect x="20.6" y="22.6" width="5.3" height="4" rx="1" fill="#FFFFFF" />
+  <defs>
+    <linearGradient id="figma-oauth-card" x1="16" y1="7" x2="16" y2="25" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#69B9FF" />
+      <stop offset="1" stop-color="#324DE2" />
+    </linearGradient>
+    <linearGradient id="figma-oauth-lock" x1="23.25" y1="17.5" x2="23.25" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6AECB6" />
+      <stop offset="1" stop-color="#37A6B1" />
+    </linearGradient>
+  </defs>
+</svg>

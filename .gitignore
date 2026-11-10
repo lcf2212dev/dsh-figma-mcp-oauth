@@ -1,0 +1,28 @@
+# Dependências e artefatos de build
+node_modules/
+coverage/
+*.log
+*.tmp
+*.tmp-*
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Configuração local (nunca versionada)
+.env
+.env.*
+*.local.*
+.dsh/
+dsh.local.yml
+cordis.patch.local.yml
+
+# Testes, verificação e saídas locais
+/figma-mcp-test/
+/research/
+/figma-out/
+/test-results/
