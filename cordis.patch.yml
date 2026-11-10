@@ -1,10 +1,10 @@
-# Bundle patch for @local/dsh-figma-mcp-oauth.
+# Bundle patch for @dsh-burn-plugins/dsh-figma-mcp-oauth.
 #
 # The row id (`figma-mcp`) and the package name are the identity the plugin
 # manager tracks; keep both unique in this profile.
 - insert:
     - id: figma-mcp
-      name: '@local/dsh-figma-mcp-oauth'
+      name: '@dsh-burn-plugins/dsh-figma-mcp-oauth'
       config:
         # Remote Figma MCP server: Streamable HTTP + OAuth.
         # No-OAuth fallback: point this at http://127.0.0.1:3845/mcp (Figma

@@ -123,7 +123,7 @@ Alternativas legítimas:
 
 ```yaml
 - id: figma-mcp
-  name: '@local/dsh-figma-mcp-oauth'
+  name: '@dsh-burn-plugins/dsh-figma-mcp-oauth'
   config:
     url: http://127.0.0.1:3845/mcp
     authMode: none

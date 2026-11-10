@@ -22,7 +22,7 @@
  * Secrets live in the harness credential store as the record `figma-mcp/oauth`,
  * never in configuration.
  *
- * @module @local/dsh-figma-mcp-oauth
+ * @module @dsh-burn-plugins/dsh-figma-mcp-oauth
  */
 
 import z from '@deepseek-ai/schemastery'
