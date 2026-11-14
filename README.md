@@ -160,7 +160,7 @@ Requirements: updated Figma desktop app, a Design file open, `Shift+D`
 ## Architecture
 
 ```
-figma-mcp-oauth/
+dsh-figma-mcp-oauth/
 ├── index.js           # Cordis plugin: Config, inject, apply, tools/command/flow
 ├── lib/oauth.js       # OAuthClientProvider + store via ctx.credentials + loopback + browser
 ├── lib/mcp.js         # MCP connection supervisor, public names, tool registration
